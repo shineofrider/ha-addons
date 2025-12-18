@@ -1,6 +1,6 @@
 name: "Dufs File Server"
 description: "File server semplice: Download pubblico, Upload privato."
-version: "1.0.0"
+version: "1.1.0" # Ho alzato la versione
 slug: "dufs_server"
 init: false
 arch:
@@ -8,13 +8,16 @@ arch:
   - amd64
   - armv7
 ports:
-  5000/tcp: 5000 # Porta di default esposta
+  5000/tcp: 5000
 map:
-  - share:rw     # Mappa la cartella /share di HA in lettura/scrittura
+  - share:rw     # Importante: mappa /share
+  - media:rw     # AGGIUNTA: mappiamo anche /media, così puoi scegliere di usare quella
 options:
   username: "admin"
   password: "cambiami_subito"
+  data_path: "/share/pubblici"  # <--- Ecco il valore di default
 schema:
   username: str
   password: str
+  data_path: str                # <--- Definiamo che è una stringa modificabile
 startup: application

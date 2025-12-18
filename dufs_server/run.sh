@@ -31,4 +31,4 @@ exec /usr/bin/dufs "$DATA_PATH" \
     -p 50000 \
     -b 0.0.0.0 \
     -a "$USERNAME:$PASSWORD@/:rw" \
-    -a "@/:r"
+    -a "@/:ro"

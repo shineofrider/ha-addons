@@ -1,6 +1,8 @@
 #!/usr/bin/with-contenv bashio
 set -e
 
+init: false
+
 # Configurazione
 DB_PATH="/data/database/filebrowser.db"
 # Pulizia caratteri invisibili

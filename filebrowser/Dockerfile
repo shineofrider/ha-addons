@@ -1,24 +1,24 @@
 ARG BUILD_FROM=ghcr.io/home-assistant/aarch64-base:latest
 FROM $BUILD_FROM
 
-# Installiamo dipendenze
+# 1. Installiamo le dipendenze
 RUN apk add --no-cache bash jq curl ca-certificates libc6-compat
 
-# Scarichiamo FileBrowser (script ufficiale)
+# 2. Installiamo FileBrowser (script ufficiale)
 RUN curl -fsSL https://raw.githubusercontent.com/filebrowser/get/master/get.sh | bash
 
-# Creiamo la cartella per il database
+# 3. Creiamo la cartella database
 RUN mkdir -p /data/database
 
-# --- MODIFICA QUI ---
-# Invece di copiarlo in /run.sh, lo mettiamo nella cartella dei servizi di S6
+# 4. CONFIGURAZIONE S6 SERVICE (La parte magica)
 # Creiamo la cartella del servizio
 RUN mkdir -p /etc/services.d/filebrowser
 
-# Copiamo lo script chiamandolo "run" (obbligatorio chiamarlo così per S6)
+# Copiamo lo script chiamandolo obbligatoriamente "run"
 COPY run.sh /etc/services.d/filebrowser/run
 
-# Diamo i permessi
+# Diamo i permessi di esecuzione
 RUN chmod +x /etc/services.d/filebrowser/run
 
-# RIMUOVIAMO IL CMD (non serve più, ci pensa S6)
+# IMPORTANTE: Nessun comando CMD o ENTRYPOINT alla fine.
+# Lasciamo fare tutto all'immagine base di Home Assistant.

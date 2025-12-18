@@ -1,0 +1,20 @@
+name: "FileBrowser"
+version: "1.0"
+slug: "filebrowser_ha"
+description: "File Manager professionale con Login e Link di condivisione."
+url: "https://github.com/filebrowser/filebrowser"
+startup: application
+arch:
+  - aarch64
+  - amd64
+  - armv7
+ports:
+  8080/tcp: 8080
+map:
+  - share:rw
+  - media:rw
+options:
+  root_path: "/share/pubblici"
+  # NOTA: La password si imposterà al primo avvio, poi la gestisci dalla GUI dell'addon
+schema:
+  root_path: str

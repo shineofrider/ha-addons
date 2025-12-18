@@ -6,7 +6,7 @@ DB_PATH="/data/database/filebrowser.db"
 
 # Lettura variabili da Home Assistant
 ROOT_PATH=$(jq --raw-output '.root_path' /data/options.json | tr -d '\r')
-ADMIN_PASS=$(jq --raw-output '.admin_password' /data/options.json | tr -d '\r') # <--- Legge la password
+ADMIN_PASS=$(jq --raw-output '.admin_password' /data/options.json | tr -d '\r')
 
 # Default PATH se vuoto
 if [ -z "$ROOT_PATH" ] || [ "$ROOT_PATH" == "null" ]; then
@@ -18,9 +18,6 @@ if [ -z "$ADMIN_PASS" ] || [ "$ADMIN_PASS" == "null" ]; then
     echo "ERRORE: Devi impostare una password nella configurazione!"
     exit 1
 fi
-
-# FileBrowser richiede almeno 6 caratteri (o 12 nelle versioni recenti), 
-# ma lasciamo che sia lui a dare errore se è troppo corta.
 
 if [ ! -d "$ROOT_PATH" ]; then
     mkdir -p "$ROOT_PATH"
@@ -41,13 +38,14 @@ fi
 /usr/local/bin/filebrowser config set --port 8080 --address 0.0.0.0 --database "$DB_PATH"
 /usr/local/bin/filebrowser config set --root "$ROOT_PATH" --database "$DB_PATH"
 
-# 3. GESTIONE UTENTE ADMIN (Con la password scelta da te)
+# 3. GESTIONE UTENTE ADMIN
 echo "Aggiorno utente admin..."
 
-# Tenta di creare l'utente. Se esiste già, aggiorna la password.
-# Usiamo la variabile $ADMIN_PASS
+# Tenta di creare l'utente (add vuole 2 argomenti: user pass). 
+# Se fallisce perché esiste già, esegue l'update.
+# CORREZIONE: update vuole 1 argomento (user) e la password come flag (--password)
 /usr/local/bin/filebrowser users add admin "$ADMIN_PASS" --perm.admin --database "$DB_PATH" 2>/dev/null || \
-/usr/local/bin/filebrowser users update admin "$ADMIN_PASS" --perm.admin --database "$DB_PATH"
+/usr/local/bin/filebrowser users update admin --password "$ADMIN_PASS" --perm.admin --database "$DB_PATH"
 
 echo "Eseguo server..."
 exec /usr/local/bin/filebrowser --database "$DB_PATH" --noauth=false

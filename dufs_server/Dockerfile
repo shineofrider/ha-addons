@@ -1,18 +1,17 @@
-# 1. Dichiariamo la variabile PRIMA di tutto.
-# Il Supervisor di HA riempirà questa variabile automaticamente con l'immagine giusta per la tua CPU.
-ARG BUILD_FROM
+# 1. Impostiamo un default per BUILD_FROM così Docker non si lamenta
+# (Il Supervisor poi lo sovrascriverà con quello giusto per il tuo hardware)
+ARG BUILD_FROM=ghcr.io/home-assistant/aarch64-base:latest
 
-# 2. Stage temporaneo: scarichiamo Dufs originale per rubare il file
-FROM sigden/dufs:latest AS source
+# 2. CORRETTO: L'immagine ufficiale è "sigoden/dufs" (con la O)
+FROM sigoden/dufs:latest AS source
 
-# 3. Stage finale: Usiamo l'immagine base di Home Assistant
-# Qui $BUILD_FROM viene sostituito dall'immagine ufficiale di HA (es. homeassistant/amd64-base)
+# 3. Stage finale: Usiamo la base di Home Assistant
 FROM $BUILD_FROM
 
-# Poiché le immagini base di HA sono basate su Alpine, usiamo apk
+# Installiamo i pacchetti necessari
 RUN apk add --no-cache jq bash
 
-# Copiamo l'eseguibile dalla prima immagine
+# Copiamo l'eseguibile corretto
 COPY --from=source /dufs /usr/bin/dufs
 
 # Copiamo lo script

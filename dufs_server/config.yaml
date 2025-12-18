@@ -1,6 +1,6 @@
 name: "Dufs File Server"
 description: "File server semplice: Download pubblico, Upload privato."
-version: "2025.12.1" # Ho alzato la versione
+version: "1.02" # Ho alzato la versione
 slug: "dufs_server"
 init: false
 arch:
@@ -8,7 +8,7 @@ arch:
   - amd64
   - armv7
 ports:
-  5000/tcp: 5000
+  50000/tcp: 50000
 map:
   - share:rw     # Importante: mappa /share
   - media:rw     # AGGIUNTA: mappiamo anche /media, così puoi scegliere di usare quella

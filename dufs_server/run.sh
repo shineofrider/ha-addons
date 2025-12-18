@@ -27,8 +27,8 @@ fi
 echo "Avvio Dufs Server..."
 
 # Avviamo Dufs usando la variabile $DATA_PATH
-exec /dufs "$DATA_PATH" \
-    -p 5000 \
+exec /usr/bin/dufs "$DATA_PATH" \
+    -p 50000 \
     -b 0.0.0.0 \
     -a "$USERNAME:$PASSWORD@/:rw" \
     -a "@/:r"

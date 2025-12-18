@@ -1,8 +1,7 @@
 name: "FileBrowser"
-version: "1.0.2"
+version: "3.1.0"
 slug: "filebrowser_ha"
-description: "File Manager professionale con Login e Link di condivisione."
-url: "https://github.com/filebrowser/filebrowser"
+description: "FileBrowser su base Alpine (No S6 errors)."
 startup: application
 arch:
   - aarch64
@@ -15,6 +14,6 @@ map:
   - media:rw
 options:
   root_path: "/share/pubblici"
-  # NOTA: La password si imposterà al primo avvio, poi la gestisci dalla GUI dell'addon
 schema:
   root_path: str
+init: false

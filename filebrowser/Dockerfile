@@ -1,24 +1,24 @@
 ARG BUILD_FROM=ghcr.io/home-assistant/aarch64-base:latest
-
-# Usiamo direttamente la base di Home Assistant
 FROM $BUILD_FROM
 
-# Installiamo:
-# - bash e jq: per il nostro script
-# - curl: per scaricare filebrowser
-# - ca-certificates: per le connessioni sicure
-# - libc6-compat: libreria necessaria per far girare filebrowser su Alpine
+# Installiamo dipendenze
 RUN apk add --no-cache bash jq curl ca-certificates libc6-compat
 
-# SCARICHIAMO FILEBROWSER
-# Questo script ufficiale rileva la tua CPU e scarica il file giusto in /usr/local/bin/
+# Scarichiamo FileBrowser (script ufficiale)
 RUN curl -fsSL https://raw.githubusercontent.com/filebrowser/get/master/get.sh | bash
-
-# Copiamo il nostro script di avvio
-COPY run.sh /run.sh
-RUN chmod +x /run.sh
 
 # Creiamo la cartella per il database
 RUN mkdir -p /data/database
 
-CMD [ "/run.sh" ]
+# --- MODIFICA QUI ---
+# Invece di copiarlo in /run.sh, lo mettiamo nella cartella dei servizi di S6
+# Creiamo la cartella del servizio
+RUN mkdir -p /etc/services.d/filebrowser
+
+# Copiamo lo script chiamandolo "run" (obbligatorio chiamarlo così per S6)
+COPY run.sh /etc/services.d/filebrowser/run
+
+# Diamo i permessi
+RUN chmod +x /etc/services.d/filebrowser/run
+
+# RIMUOVIAMO IL CMD (non serve più, ci pensa S6)

@@ -1,6 +1,6 @@
 name: "Dufs File Server"
 description: "File server semplice: Download pubblico, Upload privato."
-version: "1.03" # Ho alzato la versione
+version: "1.04" # Ho alzato la versione
 slug: "dufs_server"
 init: false
 arch:

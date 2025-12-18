@@ -1,22 +1,26 @@
-# STEP 1: Scarichiamo l'immagine di Dufs temporaneamente per prenderne il file
+# 1. Dichiariamo la variabile PRIMA di tutto.
+# Il Supervisor di HA riempirà questa variabile automaticamente con l'immagine giusta per la tua CPU.
+ARG BUILD_FROM
+
+# 2. Stage temporaneo: scarichiamo Dufs originale per rubare il file
 FROM sigden/dufs:latest AS source
 
-# STEP 2: Costruiamo l'addon partendo dalla base solida di Home Assistant
-ARG BUILD_FROM
+# 3. Stage finale: Usiamo l'immagine base di Home Assistant
+# Qui $BUILD_FROM viene sostituito dall'immagine ufficiale di HA (es. homeassistant/amd64-base)
 FROM $BUILD_FROM
 
-# Installiamo i pacchetti necessari (jq e bash)
+# Poiché le immagini base di HA sono basate su Alpine, usiamo apk
 RUN apk add --no-cache jq bash
 
-# COPIAMO l'eseguibile 'dufs' dall'immagine del passo 1 alla nostra cartella bin
-# Lo mettiamo in /usr/bin così il sistema lo trova sicuramente
+# Copiamo l'eseguibile dalla prima immagine
 COPY --from=source /dufs /usr/bin/dufs
 
-# Impostiamo i permessi di esecuzione (per sicurezza)
-RUN chmod +x /usr/bin/dufs
-
-# Copiamo ed eseguiamo il nostro script
+# Copiamo lo script
 COPY run.sh /run.sh
-RUN chmod a+x /run.sh
 
+# Permessi
+RUN chmod +x /usr/bin/dufs
+RUN chmod +x /run.sh
+
+# Avvio
 CMD [ "/run.sh" ]

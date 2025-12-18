@@ -1,7 +1,7 @@
 name: "FileBrowser"
-version: "3.1.0"
+version: "3.2.0" # Alziamo la versione
 slug: "filebrowser_ha"
-description: "FileBrowser su base Alpine (No S6 errors)."
+description: "FileBrowser su Alpine con password configurabile."
 startup: application
 arch:
   - aarch64
@@ -14,6 +14,8 @@ map:
   - media:rw
 options:
   root_path: "/share/pubblici"
+  admin_password: "admin_password_123" # <--- Valore di default (modificabile da GUI)
 schema:
   root_path: str
+  admin_password: str                  # <--- Definiamo che è una stringa
 init: false

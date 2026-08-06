@@ -36,6 +36,7 @@ RUN \
 
 # Copy root filesystem
 COPY rootfs /
+RUN chmod -R +x /etc/s6-overlay/ /etc/services.d/ /etc/cont-init.d/ 2>/dev/null || true
 
 # Build arguments
 ARG BUILD_ARCH

@@ -15,8 +15,6 @@ STATIC_DIR = APP_DIR / "static"
 OPTIONS_FILE = Path("/data/options.json")
 AUDIT_FILE = Path("/data/audit.log")
 
-HA_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiI2NzRlYmY1NDFlNjg0YWM0YjFmZWE0MmE0ZTY3MTEyMyIsImlhdCI6MTc4NjExMjE5MCwiZXhwIjoyMTAxNDcyMTkwfQ.EjmRRfpTYX4c-K1kYuY6MNr4ZUg_jCZDHt97RsHf-34"
-
 HA_API_BASE = "http://homeassistant:8123/api"
 
 DEFAULT_OPTIONS = {
@@ -29,6 +27,17 @@ DEFAULT_OPTIONS = {
 app = FastAPI(title="Home Panel")
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
+def get_ha_token() -> str:
+    options = load_options()
+    token = options.get("ha_token", "").strip()
+
+    if not token:
+        raise HTTPException(
+            status_code=500,
+            detail="HA Token non configurato"
+        )
+
+    return token
 
 def load_options() -> Dict[str, Any]:
     if not OPTIONS_FILE.exists():
@@ -168,7 +177,7 @@ def resolve_service(domain: str, action: str) -> str:
 
 def ha_headers():
     return {
-        "Authorization": f"Bearer {HA_TOKEN}",
+        "Authorization": f"Bearer {get_ha_token()}",
         "Content-Type": "application/json"
     }
 

@@ -31,6 +31,7 @@ ports_description:
 
 options:
   title: "Controlli Casa"
+  ha_token: ""
   require_cloudflare_user: false
   allowed_users:
     - "gianluca@example.com"
@@ -69,6 +70,7 @@ options:
 
 schema:
   title: str
+  ha_token: password
   require_cloudflare_user: bool
   allowed_users:
     - str

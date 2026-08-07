@@ -15,8 +15,9 @@ STATIC_DIR = APP_DIR / "static"
 OPTIONS_FILE = Path("/data/options.json")
 AUDIT_FILE = Path("/data/audit.log")
 
-SUPERVISOR_TOKEN = os.environ.get("SUPERVISOR_TOKEN", "")
-HA_API_BASE = "http://supervisor/core/api"
+HA_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiI2NzRlYmY1NDFlNjg0YWM0YjFmZWE0MmE0ZTY3MTEyMyIsImlhdCI6MTc4NjExMjE5MCwiZXhwIjoyMTAxNDcyMTkwfQ.EjmRRfpTYX4c-K1kYuY6MNr4ZUg_jCZDHt97RsHf-34"
+
+HA_API_BASE = "http://homeassistant:8123/api"
 
 DEFAULT_OPTIONS = {
     "title": "Controlli Casa",
@@ -165,11 +166,9 @@ def resolve_service(domain: str, action: str) -> str:
     return service_map[domain][action]
 
 
-def ha_headers() -> Dict[str, str]:
-    if not SUPERVISOR_TOKEN:
-        raise HTTPException(status_code=500, detail="SUPERVISOR_TOKEN non disponibile")
+def ha_headers():
     return {
-        "Authorization": f"Bearer {SUPERVISOR_TOKEN}",
+        "Authorization": f"Bearer {HA_TOKEN}",
         "Content-Type": "application/json"
     }
 

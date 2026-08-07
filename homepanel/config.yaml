@@ -1,5 +1,5 @@
 name: Home Panel
-version: "0.2.0"
+version: "0.3.0"
 slug: homepanel
 description: Pannello minimale per controllare entita Home Assistant
 url: "https://example.local"

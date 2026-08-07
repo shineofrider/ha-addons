@@ -1,19 +1,16 @@
-# Home Panel Add-on
+# Home Panel Telecomando v0.4.0
 
-Add-on Home Assistant minimale per controllare entita selezionate tramite pulsanti grandi.
+Versione riprogettata da zero con nome/slug diversi per evitare cache o mix con versioni precedenti.
 
-## Funzioni
+Caratteristiche:
+- UI tipo telecomando, card intera cliccabile
+- Niente entity_id visibile
+- Niente pulsante Esegui
+- Gruppi logici tramite `group`
+- Stato opzionale tramite `show_state`
+- Icona luce dinamica on/off
+- Permessi per entita tramite `users`
+- Chiamata comandi via `POST /api/action` con body JSON, per evitare problemi di path con Cloudflare Access
+- Token e URL Home Assistant configurabili da opzioni add-on
 
-- Interfaccia web responsive
-- Supporto Cloudflare Access tramite header `CF-Access-Authenticated-User-Email`
-- Allow-list utenti opzionale
-- Chiamate alle API interne di Home Assistant tramite `SUPERVISOR_TOKEN`
-- Audit log locale in `/data/audit.log`
-- Configurazione entita dal pannello opzioni dell'add-on
-
-## Uso consigliato
-
-- Sidebar Home Assistant: usa l'ingress.
-- Cloudflare Access: pubblica la porta 8099 tramite reverse proxy o tunnel.
-
-Se lo usi solo tramite Cloudflare Access, imposta `require_cloudflare_user: true` e configura `allowed_users`.
+Nota: il vecchio add-on usa probabilmente la stessa porta 8099. Ferma la vecchia istanza prima di avviare questa.

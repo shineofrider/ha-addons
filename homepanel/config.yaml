@@ -1,8 +1,7 @@
 name: Home Panel
-version: "0.5.0"
+version: "0.6.0"
 slug: homepanel
 description: Pannello minimale per controllare entita Home Assistant
-url: "https://example.local"
 arch:
   - amd64
   - aarch64
@@ -14,78 +13,67 @@ startup: application
 boot: auto
 init: false
 
-homeassistant_api: true
-hassio_api: true
-
-# Ingress: comodo per aprirlo dalla sidebar di Home Assistant.
 ingress: true
 ingress_port: 8099
 panel_icon: mdi:home-assistant
 panel_title: Home Panel
 
-# Porta esposta: comoda se vuoi metterlo dietro Cloudflare Access / reverse proxy.
 ports:
   8099/tcp: 8099
+
 ports_description:
   8099/tcp: Interfaccia web Home Panel
 
 options:
   title: "Controlli Casa"
   ha_token: ""
-  require_cloudflare_user: false
+  require_cloudflare_user: true
+
   allowed_users:
-    - "gianluca@example.com"
+    - "gianluca@gmail.com"
+
   entities:
-    - name: "Cancello"
-      entity_id: "button.cancello"
-      domain: "button"
-      action: "press"
-      icon: "gate"
-      color: "primary"
-      confirm: true
-
-    - name: "Garage"
-      entity_id: "cover.garage"
-      domain: "cover"
-      action: "open"
-      icon: "garage"
-      color: "primary"
-      confirm: true
-
-    - name: "Porta di casa"
-      entity_id: "lock.porta_di_casa"
-      domain: "lock"
-      action: "unlock"
-      icon: "home"
-      color: "danger"
-      group: "Accessi"
-      confirm: true
-
-    - name: "Luce ingresso"
-      entity_id: "light.ingresso"
+    - name: "Luce Campo"
+      entity_id: "light.sonoff_stalla_luce_campo"
       domain: "light"
       action: "toggle"
+      group: "Stalla Cavallo"
       icon: "light"
       color: "warning"
       confirm: false
-      group: "Luci"
+      show_state: true
       users:
-      - gianluca@example.com
+        - "*"
+
+    - name: "Cancello 1"
+      entity_id: "input_button.cancello_1"
+      domain: "input_button"
+      action: "press"
+      group: "Casa Luciana-Gino"
+      icon: "gate"
+      color: "primary"
+      confirm: false
+      show_state: false
+      users:
+        - "gianluca@gmail.com"
 
 schema:
   title: str
-  ha_token: password
+  ha_token: str
   require_cloudflare_user: bool
+
   allowed_users:
     - str
+
   entities:
     - name: str
       entity_id: str
       domain: str
       action: str
-      icon: str?
-      color: str?
-      confirm: bool?
+      group: str
+      icon: str
+      color: str
+      confirm: bool
+      show_state: bool
       users:
         - str
-      group: str?

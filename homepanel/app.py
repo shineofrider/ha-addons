@@ -252,6 +252,7 @@ def api_entities(request: Request) -> JSONResponse:
         state = get_ha_state(entity_id)
         result.append({
             "name": item.get("name", entity_id),
+            "group": item.get("group", "Generale"),
             "entity_id": entity_id,
             "domain": item.get("domain", ""),
             "action": item.get("action", ""),

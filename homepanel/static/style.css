@@ -200,3 +200,18 @@ h1 {
   .card { min-height: 210px; }
   .action-button { min-height: 64px; font-size: 1.2rem; }
 }
+
+.group-title {
+  margin-top: 24px;
+  margin-bottom: 12px;
+}
+
+.group-title h2 {
+  margin: 0;
+  padding-bottom: 8px;
+  border-bottom: 2px solid rgba(255,255,255,0.15);
+  color: #cbd5e1;
+  font-size: 1.2rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}

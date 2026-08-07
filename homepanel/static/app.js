@@ -48,51 +48,111 @@ async function loadConfig() {
 }
 
 async function loadEntities() {
+
   entitiesBox.innerHTML = "";
+
   try {
+
     const response = await fetch("api/entities");
+
     if (!response.ok) {
       throw new Error(await response.text());
     }
+
     const entities = await response.json();
 
-    if (!entities.length) {
-      entitiesBox.innerHTML = `<div class="empty">Nessuna entita configurata.</div>`;
-      return;
-    }
+    const groups = {};
 
     for (const entity of entities) {
-      const card = document.createElement("article");
-      card.className = "card";
 
-      const stateLabel = entity.state || "unknown";
-      const buttonColor = colorClass(entity.color);
+      const group = entity.group || "Generale";
 
-      card.innerHTML = `
-        <div class="icon">${escapeHtml(iconFor(entity.icon))}</div>
-        <div class="card-body">
-          <h3>${escapeHtml(entity.name)}</h3>
-          <p class="entity">${escapeHtml(entity.entity_id)}</p>
-          <p class="state">Stato: <strong>${escapeHtml(stateLabel)}</strong></p>
-        </div>
-        <button class="action-button ${buttonColor}">Esegui</button>
+      if (!groups[group]) {
+        groups[group] = [];
+      }
+
+      groups[group].push(entity);
+    }
+
+    for (const [group, items] of Object.entries(groups)) {
+
+      const title = document.createElement("div");
+
+      title.className = "group-title";
+
+      title.innerHTML = `
+        <h2>${group}</h2>
       `;
 
-      const button = card.querySelector("button");
-      button.addEventListener("click", async () => {
-        if (entity.confirm) {
-          const ok = confirm(`Confermi l'azione su "${entity.name}"?`);
-          if (!ok) return;
-        }
-        await pressEntity(entity.entity_id, entity.name);
-      });
+      entitiesBox.appendChild(title);
 
-      entitiesBox.appendChild(card);
+      const groupGrid = document.createElement("div");
+
+      groupGrid.className = "grid";
+
+      for (const entity of items) {
+
+        const card = document.createElement("article");
+
+        card.className = "card";
+
+        const stateLabel = entity.state || "unknown";
+
+        const buttonColor = colorClass(entity.color);
+
+        card.innerHTML = `
+          <div class="icon">${escapeHtml(iconFor(entity.icon))}</div>
+
+          <div class="card-body">
+            <h3>${escapeHtml(entity.name)}</h3>
+            <p class="entity">${escapeHtml(entity.entity_id)}</p>
+            <p class="state">
+              Stato:
+              <strong>${escapeHtml(stateLabel)}</strong>
+            </p>
+          </div>
+
+          <button class="action-button ${buttonColor}">
+            Esegui
+          </button>
+        `;
+
+        const button = card.querySelector("button");
+
+        button.addEventListener("click", async () => {
+
+          if (entity.confirm) {
+
+            const ok = confirm(
+              `Confermi l'azione su "${entity.name}"?`
+            );
+
+            if (!ok) {
+              return;
+            }
+          }
+
+          await pressEntity(
+            entity.entity_id,
+            entity.name
+          );
+        });
+
+        groupGrid.appendChild(card);
+      }
+
+      entitiesBox.appendChild(groupGrid);
     }
+
   } catch (error) {
+
     console.error(error);
-    entitiesBox.innerHTML = `<div class="empty error-text">Errore caricamento entita.</div>`;
-    showStatus("Errore caricamento entita", "error");
+
+    entitiesBox.innerHTML = `
+      <div class="empty error-text">
+        Errore caricamento entità.
+      </div>
+    `;
   }
 }
 

@@ -3,8 +3,6 @@ const statusBox = document.getElementById("statusBox");
 const titleBox = document.getElementById("title");
 const userBox = document.getElementById("user");
 const refreshBtn = document.getElementById("refreshBtn");
-const auditBtn = document.getElementById("auditBtn");
-const auditList = document.getElementById("auditList");
 
 const SVGS = {
   light: `
@@ -192,38 +190,10 @@ async function pressEntity(entityId, name) {
     });
     if (!response.ok) throw new Error(await response.text());
     showStatus(`Comando eseguito: ${name}`, "success");
-    window.setTimeout(loadEntities, 650);
+    window.setTimeout(loadEntities, 3000);
   } catch (error) {
     console.error(error);
     showStatus(`Errore comando: ${name}`, "error");
-  }
-}
-
-async function loadAudit() {
-  try {
-    const response = await fetch("api/audit", { credentials: "include" });
-    if (!response.ok) throw new Error(await response.text());
-    const rows = await response.json();
-    if (!rows.length) {
-      auditList.innerHTML = `<div class="audit-empty">Nessuna azione registrata.</div>`;
-      return;
-    }
-    auditList.innerHTML = rows.map(row => {
-      const ts = escapeHtml(row.timestamp || "");
-      const user = escapeHtml(row.user || "");
-      const action = escapeHtml(row.action || "");
-      const result = escapeHtml(row.result || "");
-      return `
-        <div class="audit-row">
-          <div class="audit-time">${ts}</div>
-          <div><strong>${user}</strong> ${action}</div>
-          <div class="audit-result">${result}</div>
-        </div>
-      `;
-    }).join("");
-  } catch (error) {
-    console.error(error);
-    auditList.innerHTML = `<div class="audit-empty error-text">Errore caricamento audit.</div>`;
   }
 }
 

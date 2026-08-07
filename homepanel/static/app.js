@@ -1,0 +1,201 @@
+const entitiesBox = document.getElementById("entities");
+const statusBox = document.getElementById("statusBox");
+const titleBox = document.getElementById("title");
+const userBox = document.getElementById("user");
+const refreshBtn = document.getElementById("refreshBtn");
+const auditBtn = document.getElementById("auditBtn");
+const auditList = document.getElementById("auditList");
+
+function showStatus(message, type = "info") {
+  statusBox.textContent = message;
+  statusBox.className = `status ${type}`;
+
+  setTimeout(() => {
+    statusBox.className = "status hidden";
+  }, 3500);
+}
+
+function colorClass(color) {
+  const allowed = ["primary", "danger", "warning", "success", "dark", "light"];
+  if (allowed.includes(color)) {
+    return color;
+  }
+  return "primary";
+}
+
+async function loadConfig() {
+  try {
+    const response = await fetch("api/config");
+    if (!response.ok) {
+      throw new Error(await response.text());
+    }
+
+    const config = await response.json();
+
+    titleBox.textContent = config.title || "Controlli Casa";
+
+    if (config.user && config.user !== "unknown") {
+      userBox.textContent = `Accesso: ${config.user}`;
+    } else {
+      userBox.textContent = "";
+    }
+  } catch (error) {
+    showStatus("Errore caricamento configurazione", "error");
+  }
+}
+
+async function loadEntities() {
+  entitiesBox.innerHTML = "";
+
+  try {
+    const response = await fetch("api/entities");
+    if (!response.ok) {
+      throw new Error(await response.text());
+    }
+
+    const entities = await response.json();
+
+    if (!entities.length) {
+      entitiesBox.innerHTML = `
+        <div class="empty">
+          Nessuna entita configurata.
+        </div>
+      `;
+      return;
+    }
+
+    for (const entity of entities) {
+      const card = document.createElement("article");
+      card.className = "card";
+
+      const stateLabel = entity.state || "unknown";
+      const buttonColor = colorClass(entity.color);
+
+      card.innerHTML = `
+        <div class="icon">${entity.icon || "🔘"}</div>
+
+        <div class="card-body">
+          <h3>${escapeHtml(entity.name)}</h3>
+          <p class="entity">${escapeHtml(entity.entity_id)}</p>
+          <p class="state">Stato: <strong>${escapeHtml(stateLabel)}</strong></p>
+        </div>
+
+        <button class="action-button ${buttonColor}">
+          Esegui
+        </button>
+      `;
+
+      const button = card.querySelector("button");
+
+      button.addEventListener("click", async () => {
+        if (entity.confirm) {
+          const ok = confirm(`Confermi l'azione su "${entity.name}"?`);
+          if (!ok) {
+            return;
+          }
+        }
+
+        await pressEntity(entity.entity_id, entity.name);
+      });
+
+      entitiesBox.appendChild(card);
+    }
+  } catch (error) {
+    entitiesBox.innerHTML = `
+      <div class="empty error-text">
+        Errore caricamento entita.
+      </div>
+    `;
+    showStatus("Errore caricamento entita", "error");
+  }
+}
+
+async function pressEntity(entityId, name) {
+  showStatus(`Esecuzione comando: ${name}`, "info");
+
+  try {
+    const response = await fetch(`api/press/${encodeURIComponent(entityId)}`, {
+      method: "POST"
+    });
+
+    if (!response.ok) {
+      const detail = await response.text();
+      throw new Error(detail);
+    }
+
+    showStatus(`Comando eseguito: ${name}`, "success");
+
+    setTimeout(loadEntities, 700);
+  } catch (error) {
+    console.error(error);
+    showStatus(`Errore comando: ${name}`, "error");
+  }
+}
+
+async function loadAudit() {
+  try {
+    const response = await fetch("api/audit");
+    if (!response.ok) {
+      throw new Error(await response.text());
+    }
+
+    const rows = await response.json();
+
+    if (!rows.length) {
+      auditList.innerHTML = `<div class="audit-empty">Nessuna azione registrata.</div>`;
+      return;
+    }
+
+    auditList.innerHTML = rows.map(row => {
+      const ts = escapeHtml(row.timestamp || "");
+      const user = escapeHtml(row.user || "");
+      const action = escapeHtml(row.action || "");
+      const entity = escapeHtml(row.entity_id || "");
+      const result = escapeHtml(row.result || "");
+
+      return `
+        <div class="audit-row">
+          <div class="audit-time">${ts}</div>
+          <div class="audit-main">
+            <strong>${user}</strong>
+            <span>${action}</span>
+            <span>${entity}</span>
+          </div>
+          <div class="audit-result">${result}</div>
+        </div>
+      `;
+    }).join("");
+  } catch (error) {
+    auditList.innerHTML = `<div class="audit-empty error-text">Errore caricamento audit.</div>`;
+  }
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+refreshBtn.addEventListener("click", async () => {
+  await loadEntities();
+  showStatus("Stato aggiornato", "success");
+});
+
+auditBtn.addEventListener("click", async () => {
+  const hidden = auditList.classList.contains("hidden");
+
+  if (hidden) {
+    auditList.classList.remove("hidden");
+    auditBtn.textContent = "Nascondi";
+    await loadAudit();
+  } else {
+    auditList.classList.add("hidden");
+    auditBtn.textContent = "Mostra";
+  }
+});
+
+loadConfig();
+loadEntities();

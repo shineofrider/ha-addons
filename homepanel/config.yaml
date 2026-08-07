@@ -1,5 +1,5 @@
 name: Home Panel
-version: "0.6.4"
+version: "0.6.5"
 slug: homepanel
 description: Pannello telecomando minimale per Home Assistant con gruppi, permessi utenti e Cloudflare Access
 arch:
@@ -45,18 +45,6 @@ options:
       show_state: true
       users:
         - "*"
-
-    - name: "Cancello 1"
-      entity_id: "input_button.cancello_1"
-      domain: "input_button"
-      action: "press"
-      group: "Casa Luciana-Gino"
-      icon: "gate"
-      color: "primary"
-      confirm: false
-      show_state: false
-      users:
-        - "gianluca@gmail.com"
 
 schema:
   title: str

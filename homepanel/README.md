@@ -1,16 +1,10 @@
-# Home Panel Telecomando v0.4.0
+# Home Panel 0.6.5 SVG / v0.4.2 frontend
 
-Versione riprogettata da zero con nome/slug diversi per evitare cache o mix con versioni precedenti.
+Pacchetto completo con:
+- SVG inline integrate nel frontend per light, gate, garage, door, home, switch e button
+- card piu compatte
+- colori piu tenui
+- lampadina attenuata quando lo stato e off
+- backend invariato nella logica: usa sempre /api/action e token Home Assistant da configurazione
 
-Caratteristiche:
-- UI tipo telecomando, card intera cliccabile
-- Niente entity_id visibile
-- Niente pulsante Esegui
-- Gruppi logici tramite `group`
-- Stato opzionale tramite `show_state`
-- Icona luce dinamica on/off
-- Permessi per entita tramite `users`
-- Chiamata comandi via `POST /api/action` con body JSON, per evitare problemi di path con Cloudflare Access
-- Token e URL Home Assistant configurabili da opzioni add-on
-
-Nota: il vecchio add-on usa probabilmente la stessa porta 8099. Ferma la vecchia istanza prima di avviare questa.
+Nota: se sostituisci il vecchio pacchetto, fai rebuild dell'add-on e refresh forzato del browser.

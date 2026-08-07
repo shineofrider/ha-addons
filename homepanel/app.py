@@ -44,9 +44,7 @@ def load_options() -> Dict[str, Any]:
 def get_ha_url() -> str:
     options = load_options()
     url = str(options.get("ha_url", DEFAULT_OPTIONS["ha_url"])).strip().rstrip("/")
-    if not url:
-        url = DEFAULT_OPTIONS["ha_url"]
-    return url
+    return url or DEFAULT_OPTIONS["ha_url"]
 
 
 def get_ha_token() -> str:

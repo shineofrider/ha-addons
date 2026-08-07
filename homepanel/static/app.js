@@ -6,53 +6,174 @@ const refreshBtn = document.getElementById("refreshBtn");
 const auditBtn = document.getElementById("auditBtn");
 const auditList = document.getElementById("auditList");
 
+
 function showStatus(message, type = "info") {
   statusBox.textContent = message;
   statusBox.className = `status ${type}`;
+
   setTimeout(() => {
     statusBox.className = "status hidden";
-  }, 3500);
+  }, 3000);
 }
 
-function iconFor(icon) {
+
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+
+function colorClass(color) {
+  const allowed = [
+    "primary",
+    "danger",
+    "warning",
+    "success",
+    "dark",
+    "light"
+  ];
+
+  if (allowed.includes(color)) {
+    return color;
+  }
+
+  return "primary";
+}
+
+
+function iconFor(entity) {
+  const icon = entity.icon || "button";
+  const state = entity.state || "";
+  const domain = entity.domain || "";
+
+  if (domain === "light" || icon === "light") {
+    if (state === "on") {
+      return "💡";
+    }
+
+    if (state === "off") {
+      return "🌑";
+    }
+
+    return "💡";
+  }
+
   const map = {
     gate: "🚪",
     garage: "🚗",
     home: "🏠",
     door: "🚪",
-    light: "💡",
-    switch: "🔘",
     lock: "🔐",
-    button: "🔘"
+    switch: "🔘",
+    button: "●",
+    camera: "📷",
+    alarm: "🚨",
+    garden: "🌿",
+    water: "💧",
+    climate: "🌡️"
   };
-  return map[icon] || icon || "🔘";
+
+  return map[icon] || icon || "●";
 }
 
-function colorClass(color) {
-  const allowed = ["primary", "danger", "warning", "success", "dark", "light"];
-  return allowed.includes(color) ? color : "primary";
+
+function stateLabel(entity) {
+  if (!entity.show_state) {
+    return "";
+  }
+
+  const state = entity.state || "unknown";
+
+  if (entity.domain === "light" || entity.icon === "light") {
+    if (state === "on") {
+      return "Accesa";
+    }
+
+    if (state === "off") {
+      return "Spenta";
+    }
+  }
+
+  if (state === "on") {
+    return "Attivo";
+  }
+
+  if (state === "off") {
+    return "Non attivo";
+  }
+
+  if (state === "open") {
+    return "Aperto";
+  }
+
+  if (state === "closed") {
+    return "Chiuso";
+  }
+
+  if (state === "locked") {
+    return "Bloccata";
+  }
+
+  if (state === "unlocked") {
+    return "Sbloccata";
+  }
+
+  return state;
 }
+
+
+function stateClass(entity) {
+  const state = entity.state || "";
+
+  if (!entity.show_state) {
+    return "";
+  }
+
+  if (state === "on" || state === "open" || state === "unlocked") {
+    return "state-on";
+  }
+
+  if (state === "off" || state === "closed" || state === "locked") {
+    return "state-off";
+  }
+
+  return "state-unknown";
+}
+
 
 async function loadConfig() {
   try {
     const response = await fetch("api/config");
+
     if (!response.ok) {
       throw new Error(await response.text());
     }
+
     const config = await response.json();
+
     titleBox.textContent = config.title || "Controlli Casa";
-    userBox.textContent = config.user ? `Accesso: ${config.user}` : "";
+
+    if (config.user) {
+      userBox.textContent = `Accesso: ${config.user}`;
+    } else {
+      userBox.textContent = "";
+    }
+
   } catch (error) {
+    console.error(error);
     showStatus("Errore caricamento configurazione", "error");
   }
 }
 
-async function loadEntities() {
 
+async function loadEntities() {
   entitiesBox.innerHTML = "";
 
   try {
-
     const response = await fetch("api/entities");
 
     if (!response.ok) {
@@ -61,91 +182,83 @@ async function loadEntities() {
 
     const entities = await response.json();
 
+    if (!entities.length) {
+      entitiesBox.innerHTML = `
+        <div class="empty">
+          Nessuna entità disponibile per questo utente.
+        </div>
+      `;
+      return;
+    }
+
     const groups = {};
 
     for (const entity of entities) {
+      const groupName = entity.group || "Generale";
 
-      const group = entity.group || "Generale";
-
-      if (!groups[group]) {
-        groups[group] = [];
+      if (!groups[groupName]) {
+        groups[groupName] = [];
       }
 
-      groups[group].push(entity);
+      groups[groupName].push(entity);
     }
 
-    for (const [group, items] of Object.entries(groups)) {
+    for (const [groupName, items] of Object.entries(groups)) {
+      const groupSection = document.createElement("section");
+      groupSection.className = "entity-group";
 
-      const title = document.createElement("div");
-
-      title.className = "group-title";
-
-      title.innerHTML = `
-        <h2>${group}</h2>
-      `;
-
-      entitiesBox.appendChild(title);
+      const groupTitle = document.createElement("h2");
+      groupTitle.className = "group-title";
+      groupTitle.textContent = groupName;
 
       const groupGrid = document.createElement("div");
+      groupGrid.className = "group-grid";
 
-      groupGrid.className = "grid";
+      groupSection.appendChild(groupTitle);
+      groupSection.appendChild(groupGrid);
 
       for (const entity of items) {
-
         const card = document.createElement("article");
+        card.className = `card clickable ${colorClass(entity.color)}`;
 
-        card.className = "card";
-
-        const stateLabel = entity.state || "unknown";
-
-        const buttonColor = colorClass(entity.color);
+        const label = stateLabel(entity);
+        const labelClass = stateClass(entity);
 
         card.innerHTML = `
-          <div class="icon">${escapeHtml(iconFor(entity.icon))}</div>
-
-          <div class="card-body">
-            <h3>${escapeHtml(entity.name)}</h3>
-            <p class="entity">${escapeHtml(entity.entity_id)}</p>
-            <p class="state">
-              Stato:
-              <strong>${escapeHtml(stateLabel)}</strong>
-            </p>
+          <div class="card-icon">
+            ${escapeHtml(iconFor(entity))}
           </div>
 
-          <button class="action-button ${buttonColor}">
-            Esegui
-          </button>
+          <div class="card-title">
+            ${escapeHtml(entity.name)}
+          </div>
+
+          ${
+            entity.show_state
+              ? `<div class="card-state ${labelClass}">${escapeHtml(label)}</div>`
+              : `<div class="card-state card-state-hidden">&nbsp;</div>`
+          }
         `;
 
-        const button = card.querySelector("button");
-
-        button.addEventListener("click", async () => {
-
+        card.addEventListener("click", async () => {
           if (entity.confirm) {
-
-            const ok = confirm(
-              `Confermi l'azione su "${entity.name}"?`
-            );
+            const ok = confirm(`Confermi l'azione su "${entity.name}"?`);
 
             if (!ok) {
               return;
             }
           }
 
-          await pressEntity(
-            entity.entity_id,
-            entity.name
-          );
+          await pressEntity(entity.entity_id, entity.name);
         });
 
         groupGrid.appendChild(card);
       }
 
-      entitiesBox.appendChild(groupGrid);
+      entitiesBox.appendChild(groupSection);
     }
 
   } catch (error) {
-
     console.error(error);
 
     entitiesBox.innerHTML = `
@@ -153,34 +266,54 @@ async function loadEntities() {
         Errore caricamento entità.
       </div>
     `;
+
+    showStatus("Errore caricamento entità", "error");
   }
 }
 
+
 async function pressEntity(entityId, name) {
-  showStatus(`Esecuzione comando: ${name}`, "info");
+  showStatus(`Comando in corso: ${name}`, "info");
+
   try {
-    const response = await fetch(`api/press/${encodeURIComponent(entityId)}`, { method: "POST" });
+    const response = await fetch(
+      `api/press/${encodeURIComponent(entityId)}`,
+      {
+        method: "POST"
+      }
+    );
+
     if (!response.ok) {
       throw new Error(await response.text());
     }
+
     showStatus(`Comando eseguito: ${name}`, "success");
+
     setTimeout(loadEntities, 700);
+
   } catch (error) {
     console.error(error);
     showStatus(`Errore comando: ${name}`, "error");
   }
 }
 
+
 async function loadAudit() {
   try {
     const response = await fetch("api/audit");
+
     if (!response.ok) {
       throw new Error(await response.text());
     }
+
     const rows = await response.json();
 
     if (!rows.length) {
-      auditList.innerHTML = `<div class="audit-empty">Nessuna azione registrata.</div>`;
+      auditList.innerHTML = `
+        <div class="audit-empty">
+          Nessuna azione registrata.
+        </div>
+      `;
       return;
     }
 
@@ -190,6 +323,7 @@ async function loadAudit() {
       const action = escapeHtml(row.action || "");
       const entity = escapeHtml(row.entity_id || "");
       const result = escapeHtml(row.result || "");
+
       return `
         <div class="audit-row">
           <div class="audit-time">${ts}</div>
@@ -202,27 +336,28 @@ async function loadAudit() {
         </div>
       `;
     }).join("");
+
   } catch (error) {
-    auditList.innerHTML = `<div class="audit-empty error-text">Errore caricamento audit.</div>`;
+    console.error(error);
+
+    auditList.innerHTML = `
+      <div class="audit-empty error-text">
+        Errore caricamento audit.
+      </div>
+    `;
   }
 }
 
-function escapeHtml(value) {
-  return String(value)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
 
 refreshBtn.addEventListener("click", async () => {
   await loadEntities();
   showStatus("Stato aggiornato", "success");
 });
 
+
 auditBtn.addEventListener("click", async () => {
   const hidden = auditList.classList.contains("hidden");
+
   if (hidden) {
     auditList.classList.remove("hidden");
     auditBtn.textContent = "Nascondi";
@@ -232,6 +367,7 @@ auditBtn.addEventListener("click", async () => {
     auditBtn.textContent = "Mostra";
   }
 });
+
 
 loadConfig();
 loadEntities();

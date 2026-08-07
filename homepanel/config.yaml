@@ -15,6 +15,7 @@ boot: auto
 init: false
 
 homeassistant_api: true
+hassio_api: true
 
 # Ingress: comodo per aprirlo dalla sidebar di Home Assistant.
 ingress: true

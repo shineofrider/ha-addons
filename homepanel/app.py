@@ -236,6 +236,7 @@ def api_config(request: Request) -> JSONResponse:
 @app.get("/api/entities")
 def api_entities(request: Request) -> JSONResponse:
     check_user_allowed(request)
+    user = get_client_user(request)
     options = load_options()
     result: List[Dict[str, Any]] = []
 
@@ -245,7 +246,9 @@ def api_entities(request: Request) -> JSONResponse:
         entity_id = item.get("entity_id")
         if not entity_id:
             continue
-
+        entity_users = item.get("users", ["*"])
+        if "*" not in entity_users and user not in entity_users:
+            continue
         state = get_ha_state(entity_id)
         result.append({
             "name": item.get("name", entity_id),
@@ -265,6 +268,12 @@ def api_entities(request: Request) -> JSONResponse:
 def api_press(entity_id: str, request: Request) -> JSONResponse:
     user = check_user_allowed(request)
     item = find_entity(entity_id)
+    entity_users = item.get("users", ["*"])
+    if "*" not in entity_users and user not in entity_users:
+        raise HTTPException(
+            status_code=403,
+            detail="Utente non autorizzato"
+        )
 
     if not item:
         audit_log(user, "not_found", entity_id, "Entita non configurata")

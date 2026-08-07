@@ -1,5 +1,5 @@
 name: Home Panel
-version: "0.3.0"
+version: "0.4.0"
 slug: homepanel
 description: Pannello minimale per controllare entita Home Assistant
 url: "https://example.local"
@@ -67,6 +67,8 @@ options:
       icon: "light"
       color: "warning"
       confirm: false
+      users:
+      - gianluca@example.com
 
 schema:
   title: str
@@ -82,3 +84,5 @@ schema:
       icon: str?
       color: str?
       confirm: bool?
+      users:
+        - str

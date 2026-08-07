@@ -9,18 +9,28 @@ const auditList = document.getElementById("auditList");
 function showStatus(message, type = "info") {
   statusBox.textContent = message;
   statusBox.className = `status ${type}`;
-
   setTimeout(() => {
     statusBox.className = "status hidden";
   }, 3500);
 }
 
+function iconFor(icon) {
+  const map = {
+    gate: "🚪",
+    garage: "🚗",
+    home: "🏠",
+    door: "🚪",
+    light: "💡",
+    switch: "🔘",
+    lock: "🔐",
+    button: "🔘"
+  };
+  return map[icon] || icon || "🔘";
+}
+
 function colorClass(color) {
   const allowed = ["primary", "danger", "warning", "success", "dark", "light"];
-  if (allowed.includes(color)) {
-    return color;
-  }
-  return "primary";
+  return allowed.includes(color) ? color : "primary";
 }
 
 async function loadConfig() {
@@ -29,16 +39,9 @@ async function loadConfig() {
     if (!response.ok) {
       throw new Error(await response.text());
     }
-
     const config = await response.json();
-
     titleBox.textContent = config.title || "Controlli Casa";
-
-    if (config.user && config.user !== "unknown") {
-      userBox.textContent = `Accesso: ${config.user}`;
-    } else {
-      userBox.textContent = "";
-    }
+    userBox.textContent = config.user ? `Accesso: ${config.user}` : "";
   } catch (error) {
     showStatus("Errore caricamento configurazione", "error");
   }
@@ -46,21 +49,15 @@ async function loadConfig() {
 
 async function loadEntities() {
   entitiesBox.innerHTML = "";
-
   try {
     const response = await fetch("api/entities");
     if (!response.ok) {
       throw new Error(await response.text());
     }
-
     const entities = await response.json();
 
     if (!entities.length) {
-      entitiesBox.innerHTML = `
-        <div class="empty">
-          Nessuna entita configurata.
-        </div>
-      `;
+      entitiesBox.innerHTML = `<div class="empty">Nessuna entita configurata.</div>`;
       return;
     }
 
@@ -72,59 +69,41 @@ async function loadEntities() {
       const buttonColor = colorClass(entity.color);
 
       card.innerHTML = `
-        <div class="icon">${entity.icon || "🔘"}</div>
-
+        <div class="icon">${escapeHtml(iconFor(entity.icon))}</div>
         <div class="card-body">
           <h3>${escapeHtml(entity.name)}</h3>
           <p class="entity">${escapeHtml(entity.entity_id)}</p>
           <p class="state">Stato: <strong>${escapeHtml(stateLabel)}</strong></p>
         </div>
-
-        <button class="action-button ${buttonColor}">
-          Esegui
-        </button>
+        <button class="action-button ${buttonColor}">Esegui</button>
       `;
 
       const button = card.querySelector("button");
-
       button.addEventListener("click", async () => {
         if (entity.confirm) {
           const ok = confirm(`Confermi l'azione su "${entity.name}"?`);
-          if (!ok) {
-            return;
-          }
+          if (!ok) return;
         }
-
         await pressEntity(entity.entity_id, entity.name);
       });
 
       entitiesBox.appendChild(card);
     }
   } catch (error) {
-    entitiesBox.innerHTML = `
-      <div class="empty error-text">
-        Errore caricamento entita.
-      </div>
-    `;
+    console.error(error);
+    entitiesBox.innerHTML = `<div class="empty error-text">Errore caricamento entita.</div>`;
     showStatus("Errore caricamento entita", "error");
   }
 }
 
 async function pressEntity(entityId, name) {
   showStatus(`Esecuzione comando: ${name}`, "info");
-
   try {
-    const response = await fetch(`api/press/${encodeURIComponent(entityId)}`, {
-      method: "POST"
-    });
-
+    const response = await fetch(`api/press/${encodeURIComponent(entityId)}`, { method: "POST" });
     if (!response.ok) {
-      const detail = await response.text();
-      throw new Error(detail);
+      throw new Error(await response.text());
     }
-
     showStatus(`Comando eseguito: ${name}`, "success");
-
     setTimeout(loadEntities, 700);
   } catch (error) {
     console.error(error);
@@ -138,7 +117,6 @@ async function loadAudit() {
     if (!response.ok) {
       throw new Error(await response.text());
     }
-
     const rows = await response.json();
 
     if (!rows.length) {
@@ -152,7 +130,6 @@ async function loadAudit() {
       const action = escapeHtml(row.action || "");
       const entity = escapeHtml(row.entity_id || "");
       const result = escapeHtml(row.result || "");
-
       return `
         <div class="audit-row">
           <div class="audit-time">${ts}</div>
@@ -186,7 +163,6 @@ refreshBtn.addEventListener("click", async () => {
 
 auditBtn.addEventListener("click", async () => {
   const hidden = auditList.classList.contains("hidden");
-
   if (hidden) {
     auditList.classList.remove("hidden");
     auditBtn.textContent = "Nascondi";

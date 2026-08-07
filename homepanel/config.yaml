@@ -1,5 +1,5 @@
 name: Home Panel Telecomando
-version: "0.4.0"
+version: "0.6.2"
 slug: homepanel_telecomando_v04
 description: Pannello telecomando minimale per Home Assistant con gruppi, permessi utenti e Cloudflare Access
 arch:

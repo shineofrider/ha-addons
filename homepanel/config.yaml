@@ -1,5 +1,5 @@
 name: Home Panel
-version: "0.6.0"
+version: "0.6.1"
 slug: homepanel
 description: Pannello minimale per controllare entita Home Assistant
 arch:

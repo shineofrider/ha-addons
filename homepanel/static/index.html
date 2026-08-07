@@ -4,41 +4,29 @@
   <meta charset="utf-8">
   <title>Home Panel</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  static/style.css
+  <link rel="stylesheet" href="static/style.css">
 </head>
-
 <body>
   <main class="page">
-
     <header class="header">
       <div>
         <h1 id="title">Controlli Casa</h1>
         <p id="user" class="subtitle"></p>
       </div>
-
-      <button id="refreshBtn" class="small-button">
-        Aggiorna
-      </button>
+      <button id="refreshBtn" class="small-button">Aggiorna</button>
     </header>
 
     <section id="statusBox" class="status hidden"></section>
-
     <section id="entities"></section>
 
     <section class="audit-section">
       <div class="audit-header">
         <h2>Ultime azioni</h2>
-
-        <button id="auditBtn" class="small-button">
-          Mostra
-        </button>
+        <button id="auditBtn" class="small-button">Mostra</button>
       </div>
-
       <div id="auditList" class="audit-list hidden"></div>
     </section>
-
   </main>
-
-  static/app.jsscript>
+  <script src="static/app.js"></script>
 </body>
 </html>

@@ -31,26 +31,11 @@ function colorClass(color) {
 
 function iconFor(entity) {
   const icon = entity.icon || "button";
-  const state = entity.state || "";
   const domain = entity.domain || "";
   if (domain === "light" || icon === "light") {
-    return state === "off" ? "🌑" : "💡";
+    return "💡";
   }
-  const map = {
-    gate: "🚪",
-    garage: "🚗",
-    home: "🏠",
-    door: "🚪",
-    lock: "🔐",
-    button: "●",
-    switch: "🔘",
-    camera: "📷",
-    alarm: "🚨",
-    garden: "🌿",
-    water: "💧",
-    climate: "🌡️"
-  };
-  return map[icon] || icon || "●";
+  return SVGS?.[icon] || icon;
 }
 
 function stateLabel(entity) {
@@ -99,9 +84,17 @@ function buildCard(entity) {
     ? `<span class="state-pill ${stateCss}">${escapeHtml(label)}</span>`
     : `<span class="state-spacer" aria-hidden="true"></span>`;
 
+  const lightOff =
+    (entity.domain === "light" || entity.icon === "light") &&
+    entity.state === "off";
+
   card.innerHTML = `
-    <span class="remote-icon">${escapeHtml(iconFor(entity))}</span>
-    <span class="remote-name">${escapeHtml(entity.name)}</span>
+    <span class="remote-icon ${lightOff ? 'icon-off' : ''}">
+      ${iconFor(entity)}
+    </span>
+    <span class="remote-name">
+      ${escapeHtml(entity.name)}
+    </span>
     ${stateHtml}
   `;
 

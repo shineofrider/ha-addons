@@ -111,9 +111,35 @@ h1 {
 .remote-card:hover { transform: translateY(-2px); filter: brightness(1.08); }
 .remote-card:active { transform: scale(0.97); }
 
-.remote-card.primary { background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%); }
-.remote-card.danger { background: linear-gradient(180deg, #dc2626 0%, #991b1b 100%); }
-.remote-card.warning { background: linear-gradient(180deg, #d97706 0%, #92400e 100%); }
+.icon-off {
+  opacity: .25;
+  filter: grayscale(100%);
+}
+
+.remote-card {
+  min-height: 105px;
+  padding: 12px 10px;
+  border-radius: 14px;
+}
+
+.remote-card.primary {
+  background: linear-gradient(180deg,#4f6d9e 0%,#3f5d8f 100%);
+}
+
+.remote-card.warning {
+  background: linear-gradient(180deg,#9c6c33 0%,#7e5427 100%);
+}
+
+.remote-card.danger {
+  background: linear-gradient(180deg,#a84242 0%,#883535 100%);
+}
+
+.remote-icon {
+  width: 48px;
+  height: 48px;
+  font-size: 48px;
+}
+
 .remote-card.success { background: linear-gradient(180deg, #16a34a 0%, #166534 100%); }
 .remote-card.dark { background: linear-gradient(180deg, #334155 0%, #1e293b 100%); }
 .remote-card.neutral { background: linear-gradient(180deg, #334155 0%, #1e293b 100%); }

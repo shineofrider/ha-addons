@@ -1,5 +1,5 @@
 name: Home Panel
-version: "0.7.5"
+version: "0.7.6"
 slug: homepanel
 description: Pannello telecomando minimale per Home Assistant e Domoticz con gruppi, permessi utenti e Cloudflare Access
 arch:

@@ -1,7 +1,7 @@
 name: Home Panel
-version: "0.6.6"
+version: "0.7.0"
 slug: homepanel
-description: Pannello telecomando minimale per Home Assistant con gruppi, permessi utenti e Cloudflare Access
+description: Pannello telecomando minimale per Home Assistant e Domoticz con gruppi, permessi utenti e Cloudflare Access
 arch:
   - amd64
   - aarch64
@@ -28,6 +28,9 @@ options:
   title: "Controlli Casa"
   ha_url: "http://homeassistant:8123/api"
   ha_token: ""
+  domoticz_url: "http://domoticz:8080"
+  domoticz_username: ""
+  domoticz_password: ""
   require_cloudflare_user: true
 
   allowed_users:
@@ -35,6 +38,7 @@ options:
 
   entities:
     - name: "Luce Campo"
+      backend: "homeassistant"
       entity_id: "light.sonoff_stalla_luce_campo"
       domain: "light"
       action: "toggle"
@@ -46,10 +50,26 @@ options:
       users:
         - "*"
 
+    - name: "Esempio Domoticz"
+      backend: "domoticz"
+      entity_id: "domoticz_123"
+      idx: 123
+      action: "toggle"
+      group: "Domoticz"
+      icon: "switch"
+      color: "primary"
+      confirm: false
+      show_state: true
+      users:
+        - "*"
+
 schema:
   title: str
   ha_url: str
   ha_token: str
+  domoticz_url: str
+  domoticz_username: str
+  domoticz_password: str
   require_cloudflare_user: bool
 
   allowed_users:
@@ -57,8 +77,10 @@ schema:
 
   entities:
     - name: str
+      backend: str?
       entity_id: str
-      domain: str
+      idx: int?
+      domain: str?
       action: str
       group: str?
       icon: str?

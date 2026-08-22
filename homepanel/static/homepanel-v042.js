@@ -19,7 +19,7 @@ const SVGS = {
     </svg>`,
   door: `
     <svg viewBox="0 0 24 24" class="svg-icon" aria-hidden="true">
-      <path fill="currentColor" d="M6 2h11a1 1 0 0 1 1 1v18h-2V4H8v17H6V2m7 9a1 1 0 1 0 0 2 1 1 0 0 0 0-2Z"/>
+      <path fill="currentColor" d="M6 2h11a1 1 0 0 1 1 1v18h-2V4H8v17H6V2m7 9a1 1 0 1 0 0 2 1 1 0 0 0-0-2Z"/>
     </svg>`,
   home: `
     <svg viewBox="0 0 24 24" class="svg-icon" aria-hidden="true">
@@ -35,6 +35,10 @@ const SVGS = {
     </svg>`
 };
 
+let sessionValid = false;
+let sessionExpired = false;
+let entitiesLoading = false;
+
 function escapeHtml(value) {
   return String(value)
     .replaceAll("&", "&amp;")
@@ -44,13 +48,24 @@ function escapeHtml(value) {
     .replaceAll("'", "&#039;");
 }
 
-function showStatus(message, type = "info") {
+function showStatus(message, type = "info", persistent = false) {
   statusBox.textContent = message;
   statusBox.className = `toast ${type}`;
   window.clearTimeout(showStatus._timer);
-  showStatus._timer = window.setTimeout(() => {
-    statusBox.className = "toast hidden";
-  }, 2800);
+  if (!persistent) {
+    showStatus._timer = window.setTimeout(() => {
+      statusBox.className = "toast hidden";
+    }, 2800);
+  }
+}
+
+function showSessionExpired() {
+  sessionValid = false;
+  sessionExpired = true;
+  entitiesBox.replaceChildren();
+  refreshBtn.disabled = true;
+  showStatus("Sessione scaduta. Effettua nuovamente l'accesso.", "error", true);
+  userBox.textContent = "Sessione Cloudflare scaduta";
 }
 
 function colorClass(color) {
@@ -120,6 +135,7 @@ function buildCard(entity) {
   `;
 
   card.addEventListener("click", async () => {
+    if (!sessionValid || sessionExpired) return;
     if (entity.confirm) {
       const ok = window.confirm(`Confermi l'azione su "${entity.name}"?`);
       if (!ok) return;
@@ -141,14 +157,18 @@ async function apiFetch(url, options = {}) {
     throw new Error("SESSION_EXPIRED");
   }
 
+  const contentType = response.headers.get("content-type") || "";
+  if (response.ok && contentType.includes("text/html") && url.includes("api/")) {
+    throw new Error("SESSION_EXPIRED");
+  }
+
   return response;
 }
 
 function handleApiError(error, genericMessage) {
   console.error(error);
   if (error?.message === "SESSION_EXPIRED") {
-    showStatus("Sessione Cloudflare scaduta, accesso in corso...", "error");
-    window.setTimeout(() => window.location.reload(), 300);
+    showSessionExpired();
     return;
   }
   showStatus(genericMessage, "error");
@@ -156,20 +176,22 @@ function handleApiError(error, genericMessage) {
 
 async function loadConfig() {
   try {
-    const response = await apiFetch("api/config");
+    const response = await apiFetch(`api/config?_=${Date.now()}`, { cache: "no-store" });
     if (!response.ok) throw new Error(await response.text());
     const config = await response.json();
     titleBox.textContent = config.title || "Controlli Casa";
     userBox.textContent = config.user ? `Accesso: ${config.user}` : "";
+    sessionValid = true;
+    sessionExpired = false;
+    return true;
   } catch (error) {
     handleApiError(error, "Errore caricamento configurazione");
+    return false;
   }
 }
 
-let entitiesLoading = false;
-
 async function loadEntities() {
-  if (entitiesLoading) return false;
+  if (entitiesLoading || sessionExpired) return false;
   entitiesLoading = true;
   refreshBtn.disabled = true;
 
@@ -207,17 +229,19 @@ async function loadEntities() {
     }
 
     entitiesBox.replaceChildren(fragment);
+    sessionValid = true;
     return true;
   } catch (error) {
     handleApiError(error, "Errore caricamento entità");
     return false;
   } finally {
     entitiesLoading = false;
-    refreshBtn.disabled = false;
+    refreshBtn.disabled = sessionExpired;
   }
 }
 
 async function pressEntity(entityId, name) {
+  if (!sessionValid || sessionExpired) return;
   showStatus(`Comando in corso: ${name}`, "info");
   try {
     const response = await apiFetch("api/action", {
@@ -230,16 +254,26 @@ async function pressEntity(entityId, name) {
     });
     if (!response.ok) throw new Error(await response.text());
     showStatus(`Comando eseguito: ${name}`, "success");
-    window.setTimeout(loadEntities, 3000);
+    window.setTimeout(() => {
+      if (!sessionExpired) loadEntities();
+    }, 3000);
   } catch (error) {
     handleApiError(error, `Errore comando: ${name}`);
   }
 }
 
 refreshBtn.addEventListener("click", async () => {
+  if (!sessionValid || sessionExpired) return;
   const ok = await loadEntities();
   if (ok) showStatus("Stato aggiornato", "success");
 });
 
-loadConfig();
-loadEntities();
+async function boot() {
+  refreshBtn.disabled = true;
+  entitiesBox.replaceChildren();
+  const configOk = await loadConfig();
+  if (!configOk || sessionExpired) return;
+  await loadEntities();
+}
+
+boot();

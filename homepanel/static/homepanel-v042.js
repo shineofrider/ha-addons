@@ -143,36 +143,56 @@ async function loadConfig() {
   }
 }
 
+let entitiesLoading = false;
+
 async function loadEntities() {
-  entitiesBox.innerHTML = "";
+  if (entitiesLoading) return false;
+  entitiesLoading = true;
+  refreshBtn.disabled = true;
+
   try {
-    const response = await fetch("api/entities", { credentials: "include" });
+    const response = await fetch(`api/entities?_=${Date.now()}`, {
+      credentials: "include",
+      cache: "no-store"
+    });
     if (!response.ok) throw new Error(await response.text());
+
     const entities = await response.json();
+    const fragment = document.createDocumentFragment();
+
     if (!entities.length) {
-      entitiesBox.innerHTML = `<div class="empty">Nessuna entità disponibile per questo utente.</div>`;
-      return;
-    }
-    const groups = groupEntities(entities);
-    for (const [groupName, items] of Object.entries(groups)) {
-      const section = document.createElement("section");
-      section.className = "entity-group";
-      const title = document.createElement("h2");
-      title.className = "group-title";
-      title.textContent = groupName;
-      const grid = document.createElement("div");
-      grid.className = "remote-grid";
-      for (const entity of items) {
-        grid.appendChild(buildCard(entity));
+      const empty = document.createElement("div");
+      empty.className = "empty";
+      empty.textContent = "Nessuna entità disponibile per questo utente.";
+      fragment.appendChild(empty);
+    } else {
+      const groups = groupEntities(entities);
+      for (const [groupName, items] of Object.entries(groups)) {
+        const section = document.createElement("section");
+        section.className = "entity-group";
+        const title = document.createElement("h2");
+        title.className = "group-title";
+        title.textContent = groupName;
+        const grid = document.createElement("div");
+        grid.className = "remote-grid";
+        for (const entity of items) {
+          grid.appendChild(buildCard(entity));
+        }
+        section.appendChild(title);
+        section.appendChild(grid);
+        fragment.appendChild(section);
       }
-      section.appendChild(title);
-      section.appendChild(grid);
-      entitiesBox.appendChild(section);
     }
+
+    entitiesBox.replaceChildren(fragment);
+    return true;
   } catch (error) {
     console.error(error);
-    entitiesBox.innerHTML = `<div class="empty error-text">Errore caricamento entità.</div>`;
     showStatus("Errore caricamento entità", "error");
+    return false;
+  } finally {
+    entitiesLoading = false;
+    refreshBtn.disabled = false;
   }
 }
 
@@ -198,8 +218,8 @@ async function pressEntity(entityId, name) {
 }
 
 refreshBtn.addEventListener("click", async () => {
-  await loadEntities();
-  showStatus("Stato aggiornato", "success");
+  const ok = await loadEntities();
+  if (ok) showStatus("Stato aggiornato", "success");
 });
 
 auditBtn.addEventListener("click", async () => {

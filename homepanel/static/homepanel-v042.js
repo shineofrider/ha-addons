@@ -130,16 +130,39 @@ function buildCard(entity) {
   return card;
 }
 
+async function apiFetch(url, options = {}) {
+  const response = await fetch(url, {
+    ...options,
+    credentials: "include",
+    redirect: "manual"
+  });
+
+  if (response.type === "opaqueredirect") {
+    throw new Error("SESSION_EXPIRED");
+  }
+
+  return response;
+}
+
+function handleApiError(error, genericMessage) {
+  console.error(error);
+  if (error?.message === "SESSION_EXPIRED") {
+    showStatus("Sessione Cloudflare scaduta, accesso in corso...", "error");
+    window.setTimeout(() => window.location.reload(), 300);
+    return;
+  }
+  showStatus(genericMessage, "error");
+}
+
 async function loadConfig() {
   try {
-    const response = await fetch("api/config", { credentials: "include" });
+    const response = await apiFetch("api/config");
     if (!response.ok) throw new Error(await response.text());
     const config = await response.json();
     titleBox.textContent = config.title || "Controlli Casa";
     userBox.textContent = config.user ? `Accesso: ${config.user}` : "";
   } catch (error) {
-    console.error(error);
-    showStatus("Errore caricamento configurazione", "error");
+    handleApiError(error, "Errore caricamento configurazione");
   }
 }
 
@@ -151,8 +174,7 @@ async function loadEntities() {
   refreshBtn.disabled = true;
 
   try {
-    const response = await fetch(`api/entities?_=${Date.now()}`, {
-      credentials: "include",
+    const response = await apiFetch(`api/entities?_=${Date.now()}`, {
       cache: "no-store"
     });
     if (!response.ok) throw new Error(await response.text());
@@ -187,8 +209,7 @@ async function loadEntities() {
     entitiesBox.replaceChildren(fragment);
     return true;
   } catch (error) {
-    console.error(error);
-    showStatus("Errore caricamento entità", "error");
+    handleApiError(error, "Errore caricamento entità");
     return false;
   } finally {
     entitiesLoading = false;
@@ -199,9 +220,8 @@ async function loadEntities() {
 async function pressEntity(entityId, name) {
   showStatus(`Comando in corso: ${name}`, "info");
   try {
-    const response = await fetch("api/action", {
+    const response = await apiFetch("api/action", {
       method: "POST",
-      credentials: "include",
       headers: {
         "Content-Type": "application/json",
         "X-Requested-With": "fetch"
@@ -212,26 +232,13 @@ async function pressEntity(entityId, name) {
     showStatus(`Comando eseguito: ${name}`, "success");
     window.setTimeout(loadEntities, 3000);
   } catch (error) {
-    console.error(error);
-    showStatus(`Errore comando: ${name}`, "error");
+    handleApiError(error, `Errore comando: ${name}`);
   }
 }
 
 refreshBtn.addEventListener("click", async () => {
   const ok = await loadEntities();
   if (ok) showStatus("Stato aggiornato", "success");
-});
-
-auditBtn.addEventListener("click", async () => {
-  const hidden = auditList.classList.contains("hidden");
-  if (hidden) {
-    auditList.classList.remove("hidden");
-    auditBtn.textContent = "Nascondi";
-    await loadAudit();
-  } else {
-    auditList.classList.add("hidden");
-    auditBtn.textContent = "Mostra";
-  }
 });
 
 loadConfig();

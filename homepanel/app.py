@@ -18,6 +18,9 @@ DEFAULT_OPTIONS = {
     "title": "Controlli Casa",
     "ha_url": "http://homeassistant:8123/api",
     "ha_token": "",
+    "domoticz_url": "http://domoticz:8080",
+    "domoticz_username": "",
+    "domoticz_password": "",
     "require_cloudflare_user": False,
     "allowed_users": [],
     "entities": []
@@ -60,6 +63,21 @@ def ha_headers() -> Dict[str, str]:
         "Authorization": f"Bearer {get_ha_token()}",
         "Content-Type": "application/json"
     }
+
+
+def get_domoticz_url() -> str:
+    options = load_options()
+    url = str(options.get("domoticz_url", DEFAULT_OPTIONS["domoticz_url"])).strip().rstrip("/")
+    return url or DEFAULT_OPTIONS["domoticz_url"]
+
+
+def domoticz_auth() -> Optional[tuple]:
+    options = load_options()
+    username = str(options.get("domoticz_username", "")).strip()
+    password = str(options.get("domoticz_password", ""))
+    if username or password:
+        return (username, password)
+    return None
 
 
 def get_client_user(request: Request) -> str:
@@ -179,17 +197,98 @@ def get_ha_state(entity_id: str) -> Dict[str, Any]:
         return {"entity_id": entity_id, "state": "unknown"}
 
 
+def domoticz_params(item: Dict[str, Any]) -> Dict[str, Any]:
+    idx = item.get("idx")
+    if idx is None or str(idx).strip() == "":
+        raise HTTPException(status_code=400, detail="IDX Domoticz non configurato")
+    action = str(item.get("action", "toggle")).strip().lower()
+    command_map = {
+        "toggle": "Toggle",
+        "on": "On",
+        "off": "Off",
+        "turn_on": "On",
+        "turn_off": "Off",
+        "press": "On"
+    }
+    if action not in command_map:
+        raise HTTPException(status_code=400, detail=f"Azione Domoticz non supportata: {action}")
+    return {
+        "type": "command",
+        "dparam": "switchlight",
+        "idx": int(idx),
+        "switchcmd": command_map[action]
+    }
+
+
+def call_domoticz_action(item: Dict[str, Any]) -> Dict[str, Any]:
+    url = f"{get_domoticz_url()}/json.htm"
+    params = domoticz_params(item)
+    try:
+        response = requests.get(url, params=params, auth=domoticz_auth(), timeout=10)
+    except requests.RequestException as exc:
+        raise HTTPException(status_code=502, detail=f"Errore comunicazione Domoticz: {exc}")
+    if response.status_code >= 400:
+        raise HTTPException(status_code=response.status_code, detail=response.text)
+    try:
+        data = response.json()
+    except Exception:
+        raise HTTPException(status_code=502, detail="Risposta Domoticz non valida")
+    if isinstance(data, dict) and str(data.get("status", "")).lower() not in ("", "ok"):
+        raise HTTPException(status_code=502, detail=f"Domoticz: {data.get('status')}")
+    return data
+
+
+def get_domoticz_state(item: Dict[str, Any]) -> Dict[str, Any]:
+    idx = item.get("idx")
+    try:
+        idx = int(idx)
+    except (TypeError, ValueError):
+        return {"state": "unknown", "error": "IDX Domoticz non valido"}
+    url = f"{get_domoticz_url()}/json.htm"
+    params = {"type": "devices", "rid": idx}
+    try:
+        response = requests.get(url, params=params, auth=domoticz_auth(), timeout=10)
+    except requests.RequestException as exc:
+        return {"state": "unknown", "error": str(exc)}
+    if response.status_code >= 400:
+        return {"state": "unknown", "error": response.text}
+    try:
+        data = response.json()
+    except Exception:
+        return {"state": "unknown"}
+    results = data.get("result", []) if isinstance(data, dict) else []
+    if not results:
+        return {"state": "unknown"}
+    device = results[0]
+    state = str(device.get("Status", "")).strip()
+    state_lower = state.lower()
+    if state_lower.startswith("on"):
+        state = "on"
+    elif state_lower.startswith("off"):
+        state = "off"
+    elif state_lower.startswith("open"):
+        state = "open"
+    elif state_lower.startswith("closed"):
+        state = "closed"
+    return {"state": state or "unknown", "device": device}
+
+
 def public_entity(item: Dict[str, Any]) -> Dict[str, Any]:
-    entity_id = item.get("entity_id", "")
+    entity_id = str(item.get("entity_id", ""))
+    backend = str(item.get("backend", "homeassistant")).strip().lower()
     show_state = bool(item.get("show_state", True))
     state = ""
     if show_state and entity_id:
-        state = get_ha_state(entity_id).get("state", "unknown")
+        if backend == "domoticz":
+            state = get_domoticz_state(item).get("state", "unknown")
+        else:
+            state = get_ha_state(entity_id).get("state", "unknown")
     return {
         "name": item.get("name", entity_id),
         "group": item.get("group", "Generale"),
         "entity_id": entity_id,
         "domain": item.get("domain", ""),
+        "backend": backend,
         "action": item.get("action", ""),
         "icon": item.get("icon", "button"),
         "color": item.get("color", "primary"),
@@ -254,16 +353,25 @@ def execute_entity_action(user: str, entity_id: str) -> JSONResponse:
     if not user_can_access_entity(user, item):
         audit_log(user, "access_denied", entity_id, "Utente non autorizzato")
         raise HTTPException(status_code=403, detail="Utente non autorizzato")
-    domain = str(item.get("domain", "")).strip()
+
+    backend = str(item.get("backend", "homeassistant")).strip().lower()
     action = str(item.get("action", "")).strip()
-    service = resolve_service(domain, action)
     try:
-        result = call_ha_service(domain, service, entity_id)
+        if backend == "domoticz":
+            result = call_domoticz_action(item)
+            service = domoticz_params(item)["switchcmd"]
+        elif backend == "homeassistant":
+            domain = str(item.get("domain", "")).strip()
+            service = resolve_service(domain, action)
+            result = call_ha_service(domain, service, entity_id)
+        else:
+            raise HTTPException(status_code=400, detail=f"Backend non supportato: {backend}")
     except HTTPException as exc:
         audit_log(user, action, entity_id, f"Errore: {exc.detail}")
         raise
+
     audit_log(user, action, entity_id, "OK")
-    return JSONResponse({"ok": True, "entity_id": entity_id, "domain": domain, "service": service, "result": result})
+    return JSONResponse({"ok": True, "entity_id": entity_id, "backend": backend, "action": action, "service": service, "result": result})
 
 
 @app.get("/api/audit")

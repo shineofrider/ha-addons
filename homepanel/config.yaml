@@ -1,5 +1,5 @@
 name: Home Panel
-version: "0.7.9"
+version: "0.8.0"
 slug: homepanel
 description: Pannello telecomando minimale per Home Assistant e Domoticz con gruppi, permessi utenti e Cloudflare Access
 arch:
@@ -35,6 +35,13 @@ options:
 
   allowed_users:
     - "gianluca@gmail.com"
+
+  cloudflare_team_domain: "https://shadowbreaker.cloudflareaccess.com"
+  cloudflare_shortcut_aud: ""
+
+  shortcut_users:
+    - name: "gianluca@gmail.com"
+      service_token_id: ""
 
   entities:
     - name: "Luce Campo"
@@ -74,6 +81,13 @@ schema:
 
   allowed_users:
     - str
+
+  cloudflare_team_domain: str
+  cloudflare_shortcut_aud: str
+
+  shortcut_users:
+    - name: str
+      service_token_id: str
 
   entities:
     - name: str

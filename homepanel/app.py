@@ -4,7 +4,9 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+import jwt
 import requests
+from jwt import PyJWKClient
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -23,11 +25,16 @@ DEFAULT_OPTIONS = {
     "domoticz_password": "",
     "require_cloudflare_user": False,
     "allowed_users": [],
+    "cloudflare_team_domain": "",
+    "cloudflare_shortcut_aud": "",
+    "shortcut_users": [],
     "entities": []
 }
 
 app = FastAPI(title="Home Panel Telecomando")
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+
+_jwks_clients: Dict[str, PyJWKClient] = {}
 
 
 def load_options() -> Dict[str, Any]:
@@ -92,6 +99,57 @@ def get_client_user(request: Request) -> str:
     return user.strip().lower()
 
 
+def get_cloudflare_service_user(request: Request) -> str:
+    options = load_options()
+    team_domain = str(options.get("cloudflare_team_domain", "")).strip().rstrip("/")
+    audience = str(options.get("cloudflare_shortcut_aud", "")).strip()
+    token = request.headers.get("Cf-Access-Jwt-Assertion") or request.headers.get("CF-Access-Jwt-Assertion")
+
+    if not team_domain or not audience or not token:
+        raise HTTPException(status_code=403, detail="Cloudflare Service Token non configurato o token mancante")
+
+    certs_url = f"{team_domain}/cdn-cgi/access/certs"
+    try:
+        jwks = _jwks_clients.get(certs_url)
+        if jwks is None:
+            jwks = PyJWKClient(certs_url)
+            _jwks_clients[certs_url] = jwks
+
+        signing_key = jwks.get_signing_key_from_jwt(token)
+        payload = jwt.decode(
+            token,
+            signing_key.key,
+            algorithms=["RS256"],
+            audience=audience,
+            issuer=team_domain,
+            options={"require": ["exp", "iat", "iss", "aud"]}
+        )
+    except Exception as exc:
+        audit_log("unknown", "access_denied", "system", f"JWT Cloudflare non valido: {exc}")
+        raise HTTPException(status_code=403, detail="JWT Cloudflare non valido")
+
+    if payload.get("type") != "app":
+        audit_log("unknown", "access_denied", "system", "JWT Cloudflare non applicativo")
+        raise HTTPException(status_code=403, detail="JWT Cloudflare non valido")
+
+    service_token_id = str(payload.get("common_name", "")).strip()
+    if not service_token_id:
+        audit_log("unknown", "access_denied", "system", "Service Token ID mancante nel JWT")
+        raise HTTPException(status_code=403, detail="Service Token ID mancante")
+
+    shortcut_users = options.get("shortcut_users", [])
+    for item in shortcut_users:
+        if not isinstance(item, dict):
+            continue
+        configured_id = str(item.get("service_token_id", "")).strip()
+        user = str(item.get("name", "")).strip().lower()
+        if configured_id and user and configured_id == service_token_id:
+            return user
+
+    audit_log("unknown", "access_denied", "system", "Service Token non associato a nessun utente")
+    raise HTTPException(status_code=403, detail="Service Token non autorizzato")
+
+
 def audit_log(user: str, action: str, entity_id: str, result: str) -> None:
     AUDIT_FILE.parent.mkdir(parents=True, exist_ok=True)
     row = {
@@ -105,9 +163,13 @@ def audit_log(user: str, action: str, entity_id: str, result: str) -> None:
         f.write(json.dumps(row, ensure_ascii=False) + "\n")
 
 
-def check_user_allowed(request: Request) -> str:
+def check_user_allowed(request: Request, allow_service_token: bool = False) -> str:
     options = load_options()
     user = get_client_user(request)
+
+    if allow_service_token and not user:
+        user = get_cloudflare_service_user(request)
+
     require_cloudflare_user = bool(options.get("require_cloudflare_user", False))
     allowed_users = [str(u).strip().lower() for u in options.get("allowed_users", []) if isinstance(u, str) and u.strip()]
 
@@ -342,6 +404,12 @@ async def api_action(request: Request) -> JSONResponse:
 @app.post("/api/press/{entity_id:path}")
 def api_press_compat(entity_id: str, request: Request) -> JSONResponse:
     user = check_user_allowed(request)
+    return execute_entity_action(user, entity_id)
+
+
+@app.api_route("/api/shortcut/{entity_id:path}", methods=["GET", "POST"])
+def api_shortcut(entity_id: str, request: Request) -> JSONResponse:
+    user = check_user_allowed(request, allow_service_token=True)
     return execute_entity_action(user, entity_id)
 
 

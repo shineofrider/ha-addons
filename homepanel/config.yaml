@@ -1,5 +1,5 @@
 name: Home Panel
-version: "0.8.0"
+version: "0.8.1"
 slug: homepanel
 description: Pannello telecomando minimale per Home Assistant e Domoticz con gruppi, permessi utenti e Cloudflare Access
 arch:
@@ -44,7 +44,8 @@ options:
       service_token_id: ""
 
   entities:
-    - name: "Luce Campo"
+    - id: "luce_campo"
+      name: "Luce Campo"
       backend: "homeassistant"
       entity_id: "light.sonoff_stalla_luce_campo"
       domain: "light"
@@ -57,9 +58,9 @@ options:
       users:
         - "*"
 
-    - name: "Esempio Domoticz"
+    - id: "esempio_domoticz"
+      name: "Esempio Domoticz"
       backend: "domoticz"
-      entity_id: "domoticz_123"
       idx: 123
       action: "toggle"
       group: "Domoticz"
@@ -90,9 +91,10 @@ schema:
       service_token_id: str
 
   entities:
-    - name: str
+    - id: str
+      name: str
       backend: str?
-      entity_id: str
+      entity_id: str?
       idx: int?
       domain: str?
       action: str
